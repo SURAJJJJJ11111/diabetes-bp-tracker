@@ -21,8 +21,8 @@ A simple and interactive CLI-based chatbot to help users **track**, **analyze**,
 
 - **Language:** Python
 - **Database:** SQLite
-- **Interface:** Command Line Interface (CLI)
-- **Libraries Used:** `sqlite3`, `datetime`
+- **Interface:** Command Line Interface (CLI), Gui also available .
+- **Libraries Used:** `sqlite3`, `datetime` , `tkinter`
 
 ---
 
