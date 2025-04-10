@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 
+
 # Connect to SQLite database (or create if it doesn't exist)
 conn = sqlite3.connect('health_data.db')
 cursor = conn.cursor()
@@ -90,7 +91,7 @@ def show_averages(name):
         print(f"   Sugar Level: {avg_sugar} mg/dL")
         print(f"   Blood Pressure: {avg_sys}/{avg_dia} mmHg")
     else:
-        print("⚠️ Not enough data to calculate averages.")
+        print("⚠️  Not enough data to calculate averages.")
 def analyze_diabetes_risk(name):
     cursor.execute('''
         SELECT AVG(sugar_level)
@@ -112,7 +113,6 @@ def analyze_diabetes_risk(name):
             print("🟡 Warning: Prediabetic range. Keep monitoring and maintain a healthy diet.")
         else:
             print("🔴 Alert: High risk of Diabetes! Please consult a doctor.")
-
     else:
         print("⚠️ Not enough data to analyze risk.")
 
@@ -120,6 +120,7 @@ def analyze_diabetes_risk(name):
 def chatbot():
     print("👋 Welcome to the Diabetes & BP Tracker Assistant")
     name = input("What's your name? ").strip()
+    print("Welcome", name,"nice to see you!")
     try:
         age = int(input("What's your age? "))
     except ValueError:
@@ -146,6 +147,8 @@ def chatbot():
         elif choice == "5":
             print("👋 Goodbye! Stay healthy.")
             break
+        elif choice =="suraj" or "Suraj" or "SURAJ":
+            print("\nDeveloper of the chatbot")
         else:
             print("❌ Invalid option. Please try again.")
 
