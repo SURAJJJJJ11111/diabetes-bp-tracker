@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Health Tracker Assistant</title>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div id="root">Loading...</div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function ErrorBoundary({ children }) {
+      const [hasError, setHasError] = useState(false);
+      useEffect(() => {
+        const handler = () => setHasError(true);
+        window.addEventListener('error', handler);
+        return () => window.removeEventListener('error', handler);
+      }, []);
+      if (hasError) {
+        return <div className="text-red-500 p-4">Error: Something went wrong. Check console for details.</div>;
+      }
+      return children;
+    }
+
+    const generateId = () => {
+      return 'id-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+    };
+
+    const getTimestamp = () => {
+      return new Date().toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    function HealthApp() {
+      const [user, setUser] = useState({ name: '', age: '' });
+      const [tempUser, setTempUser] = useState({ name: '', age: '' });
+      const [records, setRecords] = useState([]);
+      const [view, setView] = useState('main');
+      const [input, setInput] = useState({ sugar: '', systolic: '', diastolic: '' });
+
+      useEffect(() => {
+        try {
+          const storedUser = localStorage.getItem('healthUser');
+          const storedRecords = localStorage.getItem('healthRecords');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            if (!parsedUser.name || !parsedUser.age) setView('setup');
+          } else {
+            setView('setup');
+          }
+          if (storedRecords) setRecords(JSON.parse(storedRecords));
+          console.log('App loaded successfully');
+        } catch (e) {
+          console.error('Error loading data:', e);
+        }
+      }, []);
+
+      const saveUserProfile = () => {
+        if (!tempUser.name.trim() || isNaN(parseInt(tempUser.age)) || parseInt(tempUser.age) <= 0) {
+          alert("Please enter a valid name and age.");
+          return;
+        }
+        const newUser = { name: tempUser.name.trim(), age: parseInt(tempUser.age) };
+        setUser(newUser);
+        localStorage.setItem('healthUser', JSON.stringify(newUser));
+        setView('main');
+      };
+
+      const saveRecords = (newRecords) => {
+        try {
+          setRecords(newRecords);
+          localStorage.setItem('healthRecords', JSON.stringify(newRecords));
+        } catch (e) {
+          console.error('Error saving records:', e);
+          alert('Failed to save records.');
+        }
+      };
+
+      const addRecord = () => {
+        try {
+          const sugar = parseFloat(input.sugar);
+          const systolic = parseInt(input.systolic);
+          const diastolic = parseInt(input.diastolic);
+
+          if (isNaN(sugar) || isNaN(systolic) || isNaN(diastolic) || sugar < 0 || systolic < 0 || diastolic < 0) {
+            alert("Invalid input! Please enter valid positive numbers.");
+            return;
+          }
+
+          const newRecord = {
+            id: generateId(),
+            name: user.name,
+            age: user.age,
+            sugar_level: sugar,
+            systolic_bp: systolic,
+            diastolic_bp: diastolic,
+            timestamp: getTimestamp(),
+          };
+
+          const feedback = ["✅ Record saved!"];
+          if (sugar < 70) feedback.push("🔵 Warning: Low blood sugar!");
+          else if (sugar <= 99) feedback.push("🟢 Sugar level is normal.");
+          else if (sugar <= 125) feedback.push("🟡 Prediabetic sugar range.");
+          else feedback.push("🔴 High blood sugar! (Possible Diabetes)");
+
+          if (systolic < 90 || diastolic < 60) feedback.push("🔵 Low blood pressure.");
+          else if (systolic <= 120 && diastolic <= 80) feedback.push("🟢 Blood pressure is normal.");
+          else if (systolic <= 139 || diastolic <= 89) feedback.push("🟡 Prehypertension.");
+          else feedback.push("🔴 High blood pressure!");
+
+          saveRecords([...records, newRecord]);
+          alert(feedback.join('\n'));
+          setInput({ sugar: '', systolic: '', diastolic: '' });
+          setView('main');
+        } catch (e) {
+          console.error('Error adding record:', e.message, e.stack);
+          alert("Error saving record. Check console for details.");
+        }
+      };
+
+      const viewRecords = () => {
+        const userRecords = records.filter(r => r.name === user.name);
+        if (userRecords.length === 0) {
+          return <div className="text-yellow-600">⚠️ No records found.</div>;
+        }
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">📂 Health Records for {user.name}</h2>
+            {userRecords.map(rec => (
+              <div key={rec.id} className="bg-white p-4 rounded shadow">
+                <p>🧾 {rec.timestamp}</p>
+                <p>Sugar: {rec.sugar_level} mg/dL</p>
+                <p>BP: {rec.systolic_bp}/{rec.diastolic_bp} mmHg</p>
+              </div>
+            ))}
+          </div>
+        );
+      };
+
+      const showAverages = () => {
+        try {
+          const userRecords = records.filter(r => r.name === user.name);
+          if (userRecords.length === 0) {
+            alert("⚠️ Not enough data to calculate averages.");
+            return;
+          }
+          const avgSugar = userRecords.reduce((sum, r) => sum + r.sugar_level, 0) / userRecords.length;
+          const avgSystolic = userRecords.reduce((sum, r) => sum + r.systolic_bp, 0) / userRecords.length;
+          const avgDiastolic = userRecords.reduce((sum, r) => sum + r.diastolic_bp, 0) / userRecords.length;
+          alert(`📊 Averages\nSugar Level: ${avgSugar.toFixed(2)} mg/dL\nBlood Pressure: ${avgSystolic.toFixed(2)}/${avgDiastolic.toFixed(2)} mmHg`);
+        } catch (e) {
+          console.error('Error calculating averages:', e);
+          alert("Error calculating averages.");
+        }
+      };
+
+      const analyzeDiabetesRisk = () => {
+        try {
+          const userRecords = records.filter(r => r.name === user.name);
+          if (userRecords.length === 0) {
+            alert("⚠️ Not enough data to analyze.");
+            return;
+          }
+          const avgSugar = userRecords.reduce((sum, r) => sum + r.sugar_level, 0) / userRecords.length;
+          let msg = `📈 Avg Sugar: ${avgSugar.toFixed(2)} mg/dL\n`;
+          if (avgSugar < 70) msg += "🔵 Low sugar (Hypoglycemia).";
+          else if (avgSugar <= 99) msg += "🟢 Normal range.";
+          else if (avgSugar <= 125) msg += "🟡 Prediabetic range.";
+          else msg += "🔴 High risk of Diabetes!";
+          alert(msg);
+        } catch (e) {
+          console.error('Error analyzing diabetes risk:', e);
+          alert("Error analyzing diabetes risk.");
+        }
+      };
+
+      const showDeveloper = () => {
+        alert("👨‍💻 Developer\nThis chatbot was developed by Suraj/Shreyasi/Sneha.\nKeep tracking, stay healthy! 💪");
+      };
+
+      const renderView = () => {
+        switch (view) {
+          case 'setup':
+            return (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">👤 Set Up Your Profile</h2>
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  className="w-full p-2 border rounded"
+                  value={tempUser.name}
+                  onChange={e => setTempUser({ ...tempUser, name: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Enter your age"
+                  className="w-full p-2 border rounded"
+                  value={tempUser.age}
+                  onChange={e => setTempUser({ ...tempUser, age: e.target.value })}
+                  min="1"
+                />
+                <button
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                  onClick={saveUserProfile}
+                >
+                  ✅ Save & Continue
+                </button>
+              </div>
+            );
+          case 'add':
+            return (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">➕ Add Health Record</h2>
+                <input
+                  type="number"
+                  placeholder="Blood sugar level (mg/dL)"
+                  className="w-full p-2 border rounded"
+                  value={input.sugar}
+                  onChange={e => setInput({ ...input, sugar: e.target.value })}
+                  min="0"
+                />
+                <input
+                  type="number"
+                  placeholder="Systolic BP"
+                  className="w-full p-2 border rounded"
+                  value={input.systolic}
+                  onChange={e => setInput({ ...input, systolic: e.target.value })}
+                  min="0"
+                />
+                <input
+                  type="number"
+                  placeholder="Diastolic BP"
+                  className="w-full p-2 border rounded"
+                  value={input.diastolic}
+                  onChange={e => setInput({ ...input, diastolic: e.target.value })}
+                  min="0"
+                />
+                <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={addRecord}>Save Record</button>
+                <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={() => setView('main')}>Back</button>
+              </div>
+            );
+          case 'view':
+            return (
+              <div className="space-y-4">
+                {viewRecords()}
+                <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={() => setView('main')}>Back</button>
+              </div>
+            );
+          default:
+            return (
+              <div className="space-y-4">
+                <h1 className="text-2xl font-bold">🩺 Welcome, {user.name}!</h1>
+                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => setView('add')}>➕ Add Health Record</button>
+                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => setView('view')}>📂 View Records</button>
+                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={showAverages}>📊 Show Averages</button>
+                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={analyzeDiabetesRisk}>📈 Analyze Diabetes Risk</button>
+                <button className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={showDeveloper}>👨‍💻 Developer Info</button>
+                <button className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600" onClick={() => window.location.reload()}>❌ Exit</button>
+              </div>
+            );
+        }
+      };
+
+      return (
+        <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+          <ErrorBoundary>
+            {renderView()}
+          </ErrorBoundary>
+        </div>
+      );
+    }
+
+    try {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<HealthApp />);
+    } catch (e) {
+      console.error('Error rendering app:', e);
+      document.getElementById('root').innerHTML = '<div class="text-red-500 p-4">Failed to load app. Check console for errors.</div>';
+    }
+  </script>
+</body>
+</html>
