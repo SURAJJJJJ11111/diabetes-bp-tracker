@@ -1,6 +1,6 @@
 # 🩺 Diabetes-BP-Tracker
 
-A simple and interactive CLI-based chatbot to help users **track**, **analyze**, and **manage** their **blood sugar** and **blood pressure** levels. It provides real-time feedback, stores your health data locally using SQLite, and helps assess diabetes risk using basic health insights.
+A simple and interactive CLI-based  and GUI -based chatbot to help users **track**, **analyze**, and **manage** their **blood sugar** and **blood pressure** levels. It provides real-time feedback, stores your health data locally using SQLite, and helps assess diabetes risk using basic health insights.
 
 ---
 
